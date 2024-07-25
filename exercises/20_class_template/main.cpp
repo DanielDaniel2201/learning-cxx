@@ -1,4 +1,5 @@
 ﻿#include "../exercise.h"
+#include <cstring>
 
 // READ: 类模板 <https://zh.cppreference.com/w/cpp/language/class_template>
 
@@ -8,7 +9,8 @@ struct Tensor4D {
     T *data;
 
     Tensor4D(unsigned int const shape_[4], T const *data_) {
-        unsigned int size = 1;
+        unsigned int size = shape_[0] * shape_[1] * shape_[2] * shape_[3];
+        std::memcpy(shape, shape_, sizeof(shape));
         // TODO: 填入正确的 shape 并计算 size
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
@@ -28,6 +30,20 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+        for (u_int i1 = 0; i1 < std::max(shape[0], others.shape[0]); i1++) {
+            for (u_int i2 = 0; i2 < std::max(shape[1], others.shape[1]); i2++) {
+                for (u_int i3 = 0; i3 < std::max(shape[2], others.shape[2]); i3++) {
+                    for (u_int i4 = 0; i4 < std::max(shape[3], others.shape[3]); i4++) {
+                        int other_i1 = std::min(i1, others.shape[0] - 1);
+                        int other_i2 = std::min(i2, others.shape[1] - 1);
+                        int other_i3 = std::min(i3, others.shape[2] - 1);
+                        int other_i4 = std::min(i4, others.shape[3] - 1);
+                        data[i1 * shape[1] * shape[2] * shape[3] + i2 * shape[2] * shape[3] + i3 * shape[3] + i4] += others.data[other_i1 * others.shape[1] * others.shape[2] * others.shape[3] + other_i2 * others.shape[2] * others.shape[3] + other_i3 * others.shape[3] + other_i4];
+                    }
+                }
+            }
+        }
+
         return *this;
     }
 };
@@ -49,7 +65,7 @@ int main(int argc, char **argv) {
         auto t0 = Tensor4D(shape, data);
         auto t1 = Tensor4D(shape, data);
         t0 += t1;
-        for (unsigned int i = 0; i < sizeof(data) / sizeof(int); i++) {
+        for (auto i = 0u; i < sizeof(data) / sizeof(*data); ++i) {
             ASSERT(t0.data[i] == data[i] * 2, "Tensor doubled by plus its self.");
         }
     }
@@ -80,7 +96,7 @@ int main(int argc, char **argv) {
         auto t0 = Tensor4D(s0, d0);
         auto t1 = Tensor4D(s1, d1);
         t0 += t1;
-        for (unsigned int i = 0; i < sizeof(d0) / sizeof(int); i++) {
+        for (auto i = 0u; i < sizeof(d0) / sizeof(*d0); ++i) {
             ASSERT(t0.data[i] == 7.f, "Every element of t0 should be 7 after adding t1 to it.");
         }
     }
@@ -102,8 +118,8 @@ int main(int argc, char **argv) {
         auto t0 = Tensor4D(s0, d0);
         auto t1 = Tensor4D(s1, d1);
         t0 += t1;
-        for (unsigned int i = 0; i < sizeof(d0) / sizeof(int); i++) {
-            ASSERT(t0.data[i] == t0.data[i] + 1, "Every element of t0 should be incremented by 1 after adding t1 to it.");
+        for (auto i = 0u; i < sizeof(d0) / sizeof(*d0); ++i) {
+            ASSERT(t0.data[i] == d0[i] + 1, "Every element of t0 should be incremented by 1 after adding t1 to it.");
         }
     }
 }
